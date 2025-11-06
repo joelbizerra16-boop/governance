@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +21,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-73cn=%kis)g#*e$zwhy9dirkfz*b@#x1oo@sz%riwx5y#(kf#0'
+# Read secret key from environment for production, fallback to the existing dev key
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-73cn=%kis)g#*e$zwhy9dirkfz*b@#x1oo@sz%riwx5y#(kf#0')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Read DEBUG and ALLOWED_HOSTS from environment (use DEBUG=False in production)
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
+# ALLOWED_HOSTS should be a comma-separated list in the environment, e.g. "example.com,www.example.com"
 ALLOWED_HOSTS = []
+_ah = os.environ.get('ALLOWED_HOSTS', '')
+if _ah:
+    # split on comma and strip whitespace
+    ALLOWED_HOSTS = [h.strip() for h in _ah.split(',') if h.strip()]
 
 
 # Application definition
@@ -45,6 +53,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise middleware (serves static files in production)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -120,6 +130,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Where collectstatic will collect to (used by Render during deploy)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Use WhiteNoise compressed manifest storage in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
